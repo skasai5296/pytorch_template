@@ -21,6 +21,7 @@ from utils import ModelSaver, Timer
 def train_epoch(loader, model, optimizer, criterion, device, CONFIG, epoch):
     train_timer = Timer()
     model.train()
+    m = model.module if hasattr(model, "module") else model
     for it, data in enumerate(loader):
         hoge = data["hoge"]
         label = data["label"]
@@ -33,11 +34,15 @@ def train_epoch(loader, model, optimizer, criterion, device, CONFIG, epoch):
         out = model(hoge)
         loss, losses = criterion(out, label)
 
-        if CONFIG.use_wandb:
+        if CONFIG.basic.use_wandb:
             wandb.log(losses)
-        lossstr = " | ".join([f"{name}:\t{val:7f}" for name, val in losses.items()])
+        lossstr = " | ".join([f"{name}: {val:7f}" for name, val in losses.items()])
 
         loss.backward()
+        if CONFIG.optimizer.grad_clip > 0:
+            torch.nn.utils.clip_grad_norm_(
+                m.parameters(), max_norm=CONFIG.optimizer.grad_clip
+            )
         optimizer.step()
 
         if it % 10 == 9:
@@ -46,7 +51,6 @@ def train_epoch(loader, model, optimizer, criterion, device, CONFIG, epoch):
 
 def validate(loader, model, evaluator, device, CONFIG, epoch):
     valid_timer = Timer()
-    valid_iters = (CONFIG.valid_size + loader.batch_size - 1) // loader.batch_size
     model.eval()
     hyp = []
     ans = []
@@ -65,21 +69,15 @@ def validate(loader, model, evaluator, device, CONFIG, epoch):
         ans.extend(label)
 
         if it % 10 == 9:
-            print(f"valid {valid_timer} | iter {it+1} / {valid_iters}")
-
-        # only iterate for enough samples
-        if it == valid_iters - 1:
-            break
-    hyp = hyp[: CONFIG.valid_size]
-    ans = ans[: CONFIG.valid_size]
+            print(f"valid {valid_timer} | iter {it+1} / {len(loader)}")
 
     metrics = {}
     print("\n\n---VALIDATION RESULTS---")
     metrics = evaluator.compute_metrics(hyp=hyp, ans=ans)
     print("\n".join([f"{name}:\t{val:7f}" for name, val in metrics.items()]))
     print("---VALIDATION RESULTS---\n\n")
-    if CONFIG.use_wandb:
-        wandb.init(config=CONFIG, project=CONFIG.project_name)
+    if CONFIG.basic.use_wandb:
+        wandb.init(config=CONFIG, project=CONFIG.basic.project_name)
 
     return metrics
 
@@ -107,20 +105,20 @@ if __name__ == "__main__":
     pprint(CONFIG)
     print("\n\n")
 
-    CONFIG.gpu_ids = list(map(str, CONFIG.gpu_ids))
-    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(CONFIG.gpu_ids)
+    CONFIG.basic.gpu_ids = list(map(str, CONFIG.basic.gpu_ids))
+    os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(CONFIG.basic.gpu_ids)
 
-    if CONFIG.random_seed is not None:
-        random.seed(CONFIG.random_seed)
-        np.random.seed(CONFIG.random_seed)
-        torch.manual_seed(CONFIG.random_seed)
+    if CONFIG.misc.random_seed != 0:
+        random.seed(CONFIG.misc.random_seed)
+        np.random.seed(CONFIG.misc.random_seed)
+        torch.manual_seed(CONFIG.misc.random_seed)
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
     # device
-    if torch.cuda.is_available() and CONFIG.cuda:
+    if torch.cuda.is_available() and CONFIG.basic.cuda:
         device = torch.device("cuda")
-        print("using GPU numbers {}".format(CONFIG.gpu_ids))
+        print("using GPU numbers {}".format(CONFIG.basic.gpu_ids))
     else:
         device = torch.device("cpu")
         print("using CPU")
@@ -152,7 +150,7 @@ if __name__ == "__main__":
     # evaluator, saver
     evaluator = SampleEvaluator(CONFIG)
     # prepare output directory
-    outdir = os.path.join(CONFIG.path.output, CONFIG.config_name)
+    outdir = os.path.join(CONFIG.basic.output_path, CONFIG.basic.config_name)
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     model_path = os.path.join(outdir, "best_score.ckpt")
@@ -160,22 +158,22 @@ if __name__ == "__main__":
     if opt.resume:
         saver.load_ckpt(model, optimizer, device)
     offset_epoch = saver.epoch
-    if offset_epoch > CONFIG.max_epoch:
+    if offset_epoch > CONFIG.hyperparam.max_epoch:
         raise RuntimeError(
             "trying to restart at epoch {} while max training is set to {} epochs".format(
-                offset_epoch, CONFIG.max_epoch
+                offset_epoch, CONFIG.hyperparam.max_epoch
             )
         )
 
-    if torch.cuda.device_count() > 1 and CONFIG.dataparallel:
+    if torch.cuda.device_count() > 1:
         model = nn.DataParallel(model)
 
-    if CONFIG.use_wandb:
+    if CONFIG.basic.use_wandb:
         wandb.watch(model)
 
     # training loop
     print("\n\n---BEGIN TRAINING---\n\n")
-    for ep in range(offset_epoch - 1, CONFIG.max_epoch):
+    for ep in range(offset_epoch - 1, CONFIG.hyperparam.max_epoch):
         print("global {} | begin training for epoch {}".format(global_timer, ep + 1))
         train_epoch(train_loader, model, optimizer, criterion, device, CONFIG, ep)
         print(
@@ -184,9 +182,11 @@ if __name__ == "__main__":
             )
         )
         metrics = validate(valid_loader, model, evaluator, device, CONFIG, ep)
-        if CONFIG.use_wandb:
+        if CONFIG.basic.use_wandb:
             wandb.log(metrics)
-        if CONFIG.valid_metric in metrics.keys():
-            saver.save_ckpt_if_best(model, optimizer, metrics[CONFIG.valid_metric])
+        if CONFIG.scheduler.valid_metric in metrics.keys():
+            saver.save_ckpt_if_best(
+                model, optimizer, metrics[CONFIG.scheduler.valid_metric]
+            )
         print("global {} | end epoch {}".format(global_timer, ep + 1))
     print("\n\n---COMPLETED TRAINING---")

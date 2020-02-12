@@ -9,7 +9,10 @@ class SampleModel(nn.Module):
         super().__init__()
         self.CONFIG = CONFIG
         self.network = nn.Sequential(
-            nn.Linear(CONFIG.input_channel, CONFIG.output_channel), nn.Sigmoid()
+            nn.Linear(
+                CONFIG.hyperparam.input_channel, CONFIG.hyperparam.output_channel
+            ),
+            nn.Sigmoid(),
         )
 
         # initialize weights

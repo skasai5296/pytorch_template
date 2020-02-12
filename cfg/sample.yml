@@ -1,35 +1,41 @@
 # sample configuration file
 
-# use wandb
-use_wandb: False
-# name of project in wandb
-project_name: sample_project
-# name of configuration, used to distiguish between runs
-config_name: sample
-# random seed, set None when nonrequired
-random_seed: None
-# input channel of feature
-input_channel: 100
-# output channel of model
-output_channel: 1
-batch_size: 2
-valid_size: 100
-# usage of cuda
-cuda: True
-# set using gpu ids, if multiple enable dataparallel
-gpu_ids: [0, 1]
-# max epochs to train
-max_epoch: 5
-# which metric to use for validation
-valid_metric: MSELoss
-random_seed: 42
-loss:
-  weight:
+basic:
+  # use wandb
+  use_wandb: False
+  # name of project in wandb
+  project_name: sample_project
+  # used to distiguish between runs
+  config_name: sample
+  # usage of cuda
+  cuda: True
+  # set using gpu ids, if multiple enable dataparallel
+  gpu_ids: [0, 1]
+  # output directory
+  output_path: ../out
+hyperparam:
+  # max epochs to train
+  max_epoch: 5
+  batch_size: 2
+  # input channel of feature
+  input_channel: 100
+  # output channel of model
+  output_channel: 1
+  loss_weight:
     MSE: 1.0
 optimizer:
   name: Adam
   lr: 0.001
   beta1: 0.9
   beta2: 0.999
-path:
-  output: ../out
+  weight_decay: 0
+  grad_clip: 0
+scheduler: Step
+  # which metric to use for validation
+  valid_metric: MSELoss
+  patience: 100
+  dampen_factor: 0.1
+  early_stopping: 10
+misc:
+  # random seed, set to 0 when nonrequired
+  random_seed: 0

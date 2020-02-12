@@ -8,6 +8,7 @@ def get_optimizer(CONFIG, params):
             params,
             lr=CONFIG.optimizer.lr,
             betas=(CONFIG.optimizer.beta1, CONFIG.optimizer.beta2),
+            weight_decay=CONFIG.optimizer.weight_decay,
         )
     return optimizer
 
@@ -18,10 +19,10 @@ class SampleLoss(nn.Module):
         self.criterion = []
         self.names = []
         self.weights = []
-        if CONFIG.loss.weight.MSE >= 0.0:
+        if CONFIG.hyperparam.loss_weight.MSE >= 0.0:
             self.criterion.append(nn.MSELoss())
             self.names.append("MSELoss")
-            self.weights.append(CONFIG.loss.weight.MSE)
+            self.weights.append(CONFIG.hyperparam.loss_weight.MSE)
 
     def forward(self, y, t):
         loss = 0
