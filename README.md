@@ -4,11 +4,10 @@ Highly customizable, modularized code
 
 
 ## Requirements
-- `Python>3.6`
+- `Python 3`
 - `PyTorch`
-- `numpy`
-- `pyyaml, addict`
-- `wandb`
+- `pyyaml, addict (for configuration)`
+- `wandb` (for visualizing training runs)
 
 ## Usage
 Run `cd src && python train.py` for sample training.
