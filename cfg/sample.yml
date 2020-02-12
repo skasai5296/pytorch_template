@@ -1,0 +1,24 @@
+# sample configuration file
+
+# use wandb
+use_wandb: False
+# name of project in wandb
+project_name: sample_project
+# name of configuration, used to distiguish between runs
+config_name: sample
+# random seed, set None when nonrequired
+random_seed: None
+# input channel of feature
+input_channel: 100
+# output channel of model
+output_channel: 1
+batch_size: 2
+# usage of cuda or dataparallel
+cuda: True
+dataparallel: True
+# max epochs to train
+max_epoch: 5
+# which metric to use for validation
+valid_metric: MSELoss
+path:
+  output: ../out
