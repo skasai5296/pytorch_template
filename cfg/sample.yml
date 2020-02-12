@@ -13,12 +13,23 @@ input_channel: 100
 # output channel of model
 output_channel: 1
 batch_size: 2
-# usage of cuda or dataparallel
+valid_size: 100
+# usage of cuda
 cuda: True
-dataparallel: True
+# set using gpu ids, if multiple enable dataparallel
+gpu_ids: [0, 1]
 # max epochs to train
 max_epoch: 5
 # which metric to use for validation
 valid_metric: MSELoss
+random_seed: 42
+loss:
+  weight:
+    MSE: 1.0
+optimizer:
+  name: Adam
+  lr: 0.001
+  beta1: 0.9
+  beta2: 0.999
 path:
   output: ../out

@@ -3,23 +3,15 @@ from torch.utils.data import DataLoader, Dataset
 
 
 class SampleDataset(Dataset):
-    def __init__(self, mode):
+    def __init__(self, CONFIG, mode):
         assert mode in ("train", "val", "test")
+        self.CONFIG = CONFIG
         self.data = []
-        self.data.append(
-            {
-                "id": 0,
-                "hoge": torch.randn(100),
-                "label": torch.randint(10, (), dtype=torch.long),
-            }
-        )
-        self.data.append(
-            {
-                "id": 1,
-                "hoge": torch.randn(100),
-                "label": torch.randint(10, (), dtype=torch.long),
-            }
-        )
+        # sample data
+        for id in range(100):
+            self.data.append(
+                {"id": id, "hoge": torch.randn(100), "label": torch.randn(1)}
+            )
 
     def __getitem__(self, index):
         """
@@ -27,8 +19,9 @@ class SampleDataset(Dataset):
             index (int): Index
         Returns:
             {
-                'id':               int;            the id of hoge.
-                'hoge':             str;            hoge itself.
+                'id':           int;            the id of hoge
+                'hoge':         torch.tensor;   features
+                'label':        torch.tensor;   label of hoge
             }
         """
         id = self.data[index]["id"]
@@ -63,7 +56,7 @@ def get_collater(mode):
 if __name__ == "__main__":
     mode = "train"
     ds = SampleDataset(mode)
-    loader = DataLoader(ds, batch_size=2, collate_fn=get_collater(mode))
+    loader = DataLoader(ds, batch_size=4, collate_fn=get_collater(mode))
     for data in loader:
         print(data)
         break
