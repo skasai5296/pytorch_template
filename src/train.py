@@ -77,7 +77,7 @@ def validate(loader, model, evaluator, device, CONFIG, epoch):
     print("\n".join([f"{name}:\t{val:7f}" for name, val in metrics.items()]))
     print("---VALIDATION RESULTS---\n\n")
     if CONFIG.basic.use_wandb:
-        wandb.init(config=CONFIG, project=CONFIG.basic.project_name)
+        wandb.log(metrics)
 
     return metrics
 
@@ -104,6 +104,9 @@ if __name__ == "__main__":
     print("CONFIGURATIONS:")
     pprint(CONFIG)
     print("\n\n")
+
+    if CONFIG.basic.use_wandb:
+        wandb.init(config=CONFIG, project=CONFIG.basic.project_name)
 
     CONFIG.basic.gpu_ids = list(map(str, CONFIG.basic.gpu_ids))
     os.environ["CUDA_VISIBLE_DEVICES"] = ",".join(CONFIG.basic.gpu_ids)
